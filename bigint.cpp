@@ -6,7 +6,8 @@
 
 BigInteger::BigInteger()
 {
-    *this=ZERO;
+    this->ival=0;
+    this->words=NULL;
 }
 
 BigInteger::BigInteger(const int&val)
@@ -65,10 +66,13 @@ BigInteger::BigInteger(const BigInteger&val)
 
 BigInteger BigInteger::operator=(const BigInteger &val)
 {
+    if(this==&val)
+        return *this;
+    delete [] this->words;
     this->ival=val.ival;
     if(val.words)
     {
-        delete [] this->words;
+//        delete [] this->words;
         this->words=new int32_t[this->ival];
         memcpy(this->words,val.words,sizeof(int32_t)*static_cast<size_t>(this->ival));
     }
@@ -818,7 +822,7 @@ void BigInteger::setShift(const BigInteger &x, const int32_t &count)
     if(count>0)
         setShiftLeft(x,count);
     else
-        setShiftRight(x,count);
+        setShiftRight(x,-count);
 }
 
 void BigInteger::setShiftRight(const BigInteger &x, int32_t count)
