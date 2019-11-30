@@ -1,10 +1,13 @@
 #include <ctime>
+#include <cmath>
 #include <cstring>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
+#include <algorithm>
 #include "bigint.h"
 
+//Used in Pollard
 struct tuple
 {
     BigInteger x,a,b;
@@ -15,14 +18,25 @@ struct data
     BigInteger p,alpha,beta,n;
 };
 
+//Used in CRT
+struct congruence
+{
+    BigInteger a,n;
+};
+
+//Used in SHANKS
+struct map
+{
+    int i;
+    BigInteger bg;
+};
+
 void f(tuple&t,const data&d);
 BigInteger Pollard(const data&d);
-
-uint64_t generateLong()
-{
-    int32_t a=rand(),b=rand();
-    return (static_cast<uint64_t>(a)<<32)+static_cast<uint64_t>(b);
-}
+BigInteger Pohlig_Hellman(const data&d,const BigInteger&q,const BigInteger&c);
+BigInteger CRT(const congruence*c,const int&len);
+BigInteger SHANKS(const data&d);
+bool cmp(const map&a,const map&b);
 
 int main()
 {
@@ -30,19 +44,25 @@ int main()
     BigInteger g("2410497055970432881345493397846112198995088771364307195189734031205605186951241875096796459061741781667380437076874705300974836586165283741668656930807264789");
     BigInteger ya("973768284341326272301553751114322685324340805902069613339667142187801529585352406975030927008752571917079716318221077758236884342662829402529734009607531649");
     BigInteger yb("4149822765985031146554298777122732051870868431387323913747785791685310508836836283702926446817000114868007555717546362425841865173929670156568682745060708314");
-    BigInteger ord_g("4309874666");
+    BigInteger ord_g("4309874666");//2154937333*2
 
     data d{p,g,ya,ord_g};
+//    congruence c[2];
+//    c[0].n=BigInteger("2");
+//    c[1].n=BigInteger("2154937333");
+//    clock_t t=clock();
+//    c[0].a=Pohlig_Hellman(d,c[0].n,BigInteger::ONE);
+//    c[1].a=Pohlig_Hellman(d,c[1].n,BigInteger::ONE);
+//    BigInteger ans=CRT(c,2);
+//    t=clock()-t;
+//    ans.show();
+//    printf("Time elapsed:\t%lf\n",1000.0*t/CLOCKS_PER_SEC);
 
     clock_t t=clock();
-    BigInteger xa=Pollard(d);
+    BigInteger ans=SHANKS(d);
     t=clock()-t;
-    xa.show();
-    printf("Time elapse: %lf\n",1000.0*t/CLOCKS_PER_SEC);
-
-    //    BigInteger temp=g;
-//    temp=temp.mod(g);
-
+    ans.show();
+    printf("Time elapsed:\t%lf\n",1000.0*t/CLOCKS_PER_SEC);
     return 0;
 }
 
@@ -86,14 +106,109 @@ BigInteger Pollard(const data&d)
         BigInteger inv=b_diff.modInverse(d.n);
         return a_diff.multiply(inv).mod(d.n);
     }
-    else if(a_diff.mod(gcd).isZero())
-    {
-        BigInteger n=d.n.divide(gcd);
-        BigInteger a=a_diff.divide(gcd);
-        BigInteger b=b_diff.divide(gcd);
-        BigInteger b_inv=b.modInverse(n);
-        return a.multiply(b_inv).mod(n);
-    }
     else
         return BigInteger::ZERO;
+}
+
+BigInteger Pohlig_Hellman(const data&d,const BigInteger&q,const BigInteger&c)
+{
+    BigInteger j(BigInteger::ZERO);
+    BigInteger beta=d.beta;
+    BigInteger temp_beta=d.n.divide(q);//n/(q^(j+1))
+    BigInteger temp_q=BigInteger::ONE;
+    BigInteger n_divide_q=d.n.divide(q);
+    BigInteger ans(BigInteger::ZERO),base(BigInteger::ONE);
+    BigInteger gamma=d.alpha.modPow(n_divide_q,d.p);
+    while(!c.subtract(BigInteger::ONE).subtract(j).isNegative())
+    {
+        BigInteger sigma=beta.modPow(temp_beta,d.p);
+        temp_beta=temp_beta.divide(q);
+        BigInteger gamma_pow_i(gamma);
+        for(BigInteger i=BigInteger::ONE;i.compareTo(q)<0;i=i.add(BigInteger::ONE))
+        {
+            if(gamma_pow_i.compareTo(sigma)==0)
+            {
+                ans=ans.add(i.multiply(base));
+                base=base.multiply(q);
+                beta=beta.multiply(d.alpha.modInverse(d.p).modPow(i.multiply(temp_q),d.p));
+                temp_q=temp_q.multiply(q);
+                break;
+            }
+            gamma_pow_i=gamma_pow_i.multiply(gamma).mod(d.p);
+        }
+        j=j.add(BigInteger::ONE);
+    }
+    return ans;
+}
+
+BigInteger CRT(const congruence*c,const int&len)
+{
+    BigInteger M=BigInteger::ONE;
+    for(int i=0;i<len;i++)
+        M=M.multiply(c[i].n);
+    BigInteger *m=new BigInteger[len];
+    BigInteger *t=new BigInteger[len];
+    BigInteger ans(BigInteger::ZERO);
+    for(int i=0;i<len;i++)
+    {
+        m[i]=M.divide(c[i].n);
+        t[i]=m[i].modInverse(c[i].n);
+        ans=ans.add(c[i].a.multiply(t[i]).multiply(m[i]));
+    }
+    delete [] m;
+    delete [] t;
+    return ans.mod(M);
+}
+
+BigInteger SHANKS(const data&d)
+{
+    int m=static_cast<int>(sqrt(d.n.longValue()))+1;
+    map *L1=new map[m];
+    map *L2=new map[m];
+    char s[15]={0};
+    sprintf(s,"%d",m);
+    BigInteger m_(s);
+    BigInteger alpha_m=d.alpha.modPow(m_,d.p);
+    BigInteger alpha_inv=d.alpha.modInverse(d.p);
+    BigInteger ans("-1");
+    L1[0].bg=BigInteger::ONE;
+    L1[0].i=0;
+    L2[0].i=0;
+    L2[0].bg=d.beta;
+    for(int i=1;i<m;i++)
+    {
+        L1[i].bg=L1[i-1].bg.multiply(alpha_m).mod(d.p);
+        L1[i].i=i;
+        L2[i].i=i;
+        L2[i].bg=L2[i-1].bg.multiply(alpha_inv).mod(d.p);
+    }
+
+    std::sort(L1,L1+m,cmp);
+    std::sort(L2,L2+m,cmp);
+
+    int i=0,j=0;
+    while(i<m&&j<m)
+    {
+        int res=L1[i].bg.compareTo(L2[j].bg);
+        if(res<0)
+            i++;
+        else if(res>0)
+            j++;
+        else
+        {
+            char str[30]={0};
+            sprintf(str,"%lld",static_cast<long long>(m)*static_cast<long long>(L1[i].i)+static_cast<long long>(L2[j].i));
+            ans=BigInteger(str).mod(d.n);
+            break;
+        }
+    }
+    delete [] L1;
+    delete [] L2;
+    return ans;
+}
+
+bool cmp(const map&a,const map&b)
+{
+    int res=a.bg.compareTo(b.bg);
+    return res<0?1:0;
 }

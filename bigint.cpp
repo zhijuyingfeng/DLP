@@ -72,7 +72,6 @@ BigInteger BigInteger::operator=(const BigInteger &val)
     this->ival=val.ival;
     if(val.words)
     {
-//        delete [] this->words;
         this->words=new int32_t[this->ival];
         memcpy(this->words,val.words,sizeof(int32_t)*static_cast<size_t>(this->ival));
     }
@@ -991,6 +990,8 @@ BigInteger BigInteger::modInverse(const BigInteger &val) const
 {
     BigInteger b1=ZERO,b2=ONE;
     BigInteger p1=val,p2=*this;
+    if(p2.compareTo(p1)>0)
+        p2=p2.mod(p1);
     BigInteger q;
     while(!p2.isOne())
     {
