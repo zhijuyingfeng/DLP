@@ -47,22 +47,19 @@ int main()
     BigInteger ord_g("4309874666");//2154937333*2
 
     data d{p,g,ya,ord_g};
-//    congruence c[2];
-//    c[0].n=BigInteger("2");
-//    c[1].n=BigInteger("2154937333");
-//    clock_t t=clock();
-//    c[0].a=Pohlig_Hellman(d,c[0].n,BigInteger::ONE);
-//    c[1].a=Pohlig_Hellman(d,c[1].n,BigInteger::ONE);
-//    BigInteger ans=CRT(c,2);
-//    t=clock()-t;
-//    ans.show();
-//    printf("Time elapsed:\t%lf\n",1000.0*t/CLOCKS_PER_SEC);
 
+    congruence c[2];
+    c[0].n=BigInteger("2");
+    c[1].n=BigInteger("2154937333");
     clock_t t=clock();
-    BigInteger ans=SHANKS(d);
+    c[0].a=Pohlig_Hellman(d,c[0].n,BigInteger::ONE);
+    c[1].a=Pohlig_Hellman(d,c[1].n,BigInteger::ONE);
+    BigInteger ans=CRT(c,2);
+    ans=yb.modPow(ans,p);
     t=clock()-t;
     ans.show();
     printf("Time elapsed:\t%lf\n",1000.0*t/CLOCKS_PER_SEC);
+
     return 0;
 }
 
@@ -115,27 +112,35 @@ BigInteger Pohlig_Hellman(const data&d,const BigInteger&q,const BigInteger&c)
     BigInteger j(BigInteger::ZERO);
     BigInteger beta=d.beta;
     BigInteger temp_beta=d.n.divide(q);//n/(q^(j+1))
-    BigInteger temp_q=BigInteger::ONE;
     BigInteger n_divide_q=d.n.divide(q);
-    BigInteger ans(BigInteger::ZERO),base(BigInteger::ONE);
-    BigInteger gamma=d.alpha.modPow(n_divide_q,d.p);
+    BigInteger ans(BigInteger::ZERO);
+    BigInteger base(BigInteger::ONE);
+    BigInteger gamma=d.alpha.modPow(n_divide_q,d.p);//alpha^(n/q)
+    BigInteger alpha_inv=d.alpha.modInverse(d.p);
+    BigInteger temp_q=alpha_inv;//alpha^(- q^j)
     while(!c.subtract(BigInteger::ONE).subtract(j).isNegative())
     {
         BigInteger sigma=beta.modPow(temp_beta,d.p);
         temp_beta=temp_beta.divide(q);
-        BigInteger gamma_pow_i(gamma);
-        for(BigInteger i=BigInteger::ONE;i.compareTo(q)<0;i=i.add(BigInteger::ONE))
-        {
-            if(gamma_pow_i.compareTo(sigma)==0)
-            {
-                ans=ans.add(i.multiply(base));
-                base=base.multiply(q);
-                beta=beta.multiply(d.alpha.modInverse(d.p).modPow(i.multiply(temp_q),d.p));
-                temp_q=temp_q.multiply(q);
-                break;
-            }
-            gamma_pow_i=gamma_pow_i.multiply(gamma).mod(d.p);
-        }
+//        BigInteger gamma_pow_i(gamma);
+//        for(BigInteger i=BigInteger::ONE;i.compareTo(q)<0;i=i.add(BigInteger::ONE))
+//        {
+//            if(gamma_pow_i.compareTo(sigma)==0)
+//            {
+//                ans=ans.add(i.multiply(base));
+//                base=base.multiply(q);
+//                beta=beta.multiply(d.alpha.modInverse(d.p).modPow(i.multiply(temp_q),d.p));
+//                temp_q=temp_q.multiply(q);
+//                break;
+//            }
+//            gamma_pow_i=gamma_pow_i.multiply(gamma).mod(d.p);
+//        }
+        data d_={d.p,gamma,sigma,q};
+        BigInteger i=SHANKS(d_);
+        ans=ans.add(base.multiply(i));
+        base=base.multiply(q);
+        beta=beta.multiply(temp_q.modPow(i,d.p));
+        temp_q=temp_q.modPow(q,d.p);
         j=j.add(BigInteger::ONE);
     }
     return ans;
