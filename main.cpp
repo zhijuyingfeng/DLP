@@ -31,19 +31,42 @@ struct map
     BigInteger bg;
 };
 
+//Used in Pollard
 void f(tuple&t,const data&d);
+
 BigInteger Pollard(const data&d);
 BigInteger Pohlig_Hellman(const data&d,const BigInteger&q,const BigInteger&c);
+
+//Chinese remainder theorem,中国剩余定理
 BigInteger CRT(const congruence*c,const int&len);
+
 BigInteger SHANKS(const data&d);
+
+//Used in std::sort which is in SHANKS
 bool cmp(const map&a,const map&b);
 
 int main()
 {
-    BigInteger p("5682549022748424631339131913370125786212509227588493537874673173634936008725904358935442101466555561124455782847468955028529037660533553941399408331331403379");
-    BigInteger g("2410497055970432881345493397846112198995088771364307195189734031205605186951241875096796459061741781667380437076874705300974836586165283741668656930807264789");
-    BigInteger ya("973768284341326272301553751114322685324340805902069613339667142187801529585352406975030927008752571917079716318221077758236884342662829402529734009607531649");
-    BigInteger yb("4149822765985031146554298777122732051870868431387323913747785791685310508836836283702926446817000114868007555717546362425841865173929670156568682745060708314");
+    BigInteger p("5682549022748424631339131913370125"
+                 "7862125092275884935378746731736349"
+                 "3600872590435893544210146655556112"
+                 "4455782847468955028529037660533553"
+                 "941399408331331403379");
+    BigInteger g("2410497055970432881345493397846112"
+                 "1989950887713643071951897340312056"
+                 "0518695124187509679645906174178166"
+                 "7380437076874705300974836586165283"
+                 "741668656930807264789");
+    BigInteger ya("973768284341326272301553751114322"
+                  "685324340805902069613339667142187"
+                  "801529585352406975030927008752571"
+                  "917079716318221077758236884342662"
+                  "829402529734009607531649");
+    BigInteger yb("414982276598503114655429877712273"
+                  "205187086843138732391374778579168"
+                  "531050883683628370292644681700011"
+                  "486800755571754636242584186517392"
+                  "9670156568682745060708314");
     BigInteger ord_g("4309874666");//2154937333*2
 
     data d{p,g,ya,ord_g};
@@ -54,11 +77,51 @@ int main()
     clock_t t=clock();
     c[0].a=Pohlig_Hellman(d,c[0].n,BigInteger::ONE);
     c[1].a=Pohlig_Hellman(d,c[1].n,BigInteger::ONE);
+
     BigInteger ans=CRT(c,2);
+    printf("%5s:\t","xa");
+    ans.show();
     ans=yb.modPow(ans,p);
     t=clock()-t;
+    printf("yb^xa:\t");
     ans.show();
-    printf("Time elapsed:\t%lf\n",1000.0*t/CLOCKS_PER_SEC);
+    printf("Time elapsed:\t%lfms\n",1000.0*t/CLOCKS_PER_SEC);
+
+////    Used to test SHANKS
+//    BigInteger p("809");
+//    BigInteger n("808");
+//    BigInteger alpha("3");
+//    BigInteger beta("525");
+//    struct data d={p,alpha,beta,n};
+//    BigInteger ans=SHANKS(d);
+//    ans.show();
+
+////    Used to test Pollard rho
+//    BigInteger p("809");
+//    BigInteger n("101");
+//    BigInteger alpha("89");
+//    BigInteger beta("618");
+//    data d={p,alpha,beta,n};
+//    BigInteger ans=Pollard(d);
+//    ans.show();
+
+////    Used to test Pohlig_Hellman
+//    BigInteger p("29");
+//    BigInteger n("28");
+//    BigInteger alpha("2");
+//    BigInteger beta("18");
+//    data d={p,alpha,beta,n};
+
+//    congruence c[2];
+//    c[0].n=BigInteger("4");
+//    c[1].n=BigInteger("7");
+
+//    BigInteger TWO("2");
+
+//    c[0].a=Pohlig_Hellman(d,TWO,TWO);
+//    c[1].a=Pohlig_Hellman(d,c[1].n,BigInteger::ONE);
+//    BigInteger ans=CRT(c,2);
+//    ans.show();
 
     return 0;
 }
@@ -122,19 +185,6 @@ BigInteger Pohlig_Hellman(const data&d,const BigInteger&q,const BigInteger&c)
     {
         BigInteger sigma=beta.modPow(temp_beta,d.p);
         temp_beta=temp_beta.divide(q);
-//        BigInteger gamma_pow_i(gamma);
-//        for(BigInteger i=BigInteger::ONE;i.compareTo(q)<0;i=i.add(BigInteger::ONE))
-//        {
-//            if(gamma_pow_i.compareTo(sigma)==0)
-//            {
-//                ans=ans.add(i.multiply(base));
-//                base=base.multiply(q);
-//                beta=beta.multiply(d.alpha.modInverse(d.p).modPow(i.multiply(temp_q),d.p));
-//                temp_q=temp_q.multiply(q);
-//                break;
-//            }
-//            gamma_pow_i=gamma_pow_i.multiply(gamma).mod(d.p);
-//        }
         data d_={d.p,gamma,sigma,q};
         BigInteger i=SHANKS(d_);
         ans=ans.add(base.multiply(i));
