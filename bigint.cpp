@@ -157,7 +157,7 @@ void BigInteger::show()
         return;
     }
     for(int i=0;i<this->ival;i++)
-        printf("%08x",this->words[this->ival-i-1]);
+        printf("%08X",this->words[this->ival-i-1]);
     printf("\n");
 }
 

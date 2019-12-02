@@ -87,6 +87,20 @@ int main()
     ans.show();
     printf("Time elapsed:\t%lfms\n",1000.0*t/CLOCKS_PER_SEC);
 
+    d.beta=yb;
+    t=clock();
+    c[0].a=Pohlig_Hellman(d,c[0].n,BigInteger::ONE);
+    c[1].a=Pohlig_Hellman(d,c[1].n,BigInteger::ONE);
+
+    ans=CRT(c,2);
+    printf("\n\n%5s:\t","xb");
+    ans.show();
+    ans=ya.modPow(ans,p);
+    t=clock()-t;
+    printf("ya^xb:\t");
+    ans.show();
+    printf("Time elapsed:\t%lfms\n",1000.0*t/CLOCKS_PER_SEC);
+
 ////    Used to test SHANKS
 //    BigInteger p("809");
 //    BigInteger n("808");
