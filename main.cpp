@@ -69,6 +69,22 @@ int main()
                   "9670156568682745060708314");
     BigInteger ord_g("4309874666");//2154937333*2
 
+////    Used to test result
+//    BigInteger xa("3958420340");
+//    BigInteger xb("1004913511");
+
+//    BigInteger a=g.modPow(xa,p);
+//    a.show();
+//    int cmp=a.compareTo(ya);
+//    if(!cmp)
+//        printf("The same\n");
+//    BigInteger b=g.modPow(xb,p);
+//    b.show();
+//    cmp=b.compareTo(yb);
+//    if(!cmp)
+//        printf("The same\n");
+
+
     data d{p,g,ya,ord_g};
 
     congruence c[2];
@@ -137,6 +153,7 @@ int main()
 //    BigInteger ans=CRT(c,2);
 //    ans.show();
 
+    getchar();
     return 0;
 }
 
